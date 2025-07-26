@@ -1,0 +1,40 @@
+name: Kubernetes Pod Deployment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy-pod:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate random pod name
+        id: generate
+        run: echo "POD_NAME=mypod-$(date +%s)" >> $GITHUB_ENV
+
+      - name: Create and apply Kubernetes pod
+        run: |
+          echo "Creating pod: $POD_NAME"
+          cat <<EOF > pod.yaml
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: $POD_NAME
+            namespace: default
+            labels:
+              app: $POD_NAME
+          spec:
+            containers:
+            - name: hello
+              image: rancher/hello-world
+          EOF
+
+          kubectl apply -f pod.yaml --kubeconfig=$HOME/.kube/config
+
+      - name: Check pods in default namespace
+        run: kubectl get pods -n default --kubeconfig=$HOME/.kube/config
